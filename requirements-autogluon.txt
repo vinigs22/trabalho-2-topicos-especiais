@@ -1,0 +1,3 @@
+# Ferramenta instalada no Colab no teste preliminar.
+# Demais dependências ainda não foram congeladas.
+autogluon.tabular==1.6.3
