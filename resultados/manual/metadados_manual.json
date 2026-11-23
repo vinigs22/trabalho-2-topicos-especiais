@@ -1,0 +1,49 @@
+{
+  "hardware": {
+    "python": "3.13.18",
+    "platform": "Linux-6.6.159+-x86_64-with-glibc2.39",
+    "cpus_logicas": 2,
+    "memoria_total_gb": 12.67,
+    "colab": true
+  },
+  "versoes": {
+    "scikit-learn": "1.9.1",
+    "imbalanced-learn": "0.14.2",
+    "pandas": "3.0.6",
+    "numpy": "2.5.3"
+  },
+  "seed": 42,
+  "lr_params": {
+    "C": 965.4364320815508,
+    "tol": 7.254438629819097e-05,
+    "fit_intercept": false,
+    "max_iter": 2000,
+    "solver": "lbfgs",
+    "random_state": 42
+  },
+  "features": [
+    "Age_years",
+    "HbA2",
+    "HbF",
+    "S-Window",
+    "Unknown",
+    "RBC",
+    "HB",
+    "MCV",
+    "MCHC",
+    "RDWcv",
+    "Gender",
+    "Religion",
+    "Weekness",
+    "Jaundice",
+    "Present District",
+    "HbS_peak_presente",
+    "HbD_peak_presente"
+  ],
+  "t1_original": {
+    "cv_f1_macro": 0.8982,
+    "val_f1_macro": 0.792,
+    "test_f1_macro_treino+val": 0.9056
+  },
+  "metodo_memoria": "pico de RSS (processo + subprocessos) amostrado a cada 50 ms com psutil"
+}

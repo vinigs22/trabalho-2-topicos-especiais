@@ -1,0 +1,3 @@
+versão,f1_macro_teste
+T1 original (ajuste em treino + validação),0.9056
+T2 corrigido (ajuste só no treino),0.8960788863389856

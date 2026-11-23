@@ -1,0 +1,3 @@
+conjunto,amostras,atributos,classes,complexidade,desbalanceamento,menor_classe,maior_classe
+Após filtros do T1 (usado no T2),13011,17,8,0.010452693874413957,0.0011037527593818985,Beta Thalassaemia major (13),Normal (11778)
+CSV original (13 classes),13031,17,13,0.016959557977131456,8.486803021301876e-05,HbD disease (1),Normal (11783)
