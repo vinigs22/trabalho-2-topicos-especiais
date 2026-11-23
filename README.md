@@ -12,12 +12,39 @@ Os testes confirmaram instalação, importação e treinamento no CSV. **Ainda n
 
 ## Arquivos
 
+- `notebooks/01_pipeline_manual.ipynb`: **protocolo oficial** — dados e filtros do Trabalho 1, partição 60/20/20 fixa, pipeline manual de referência (T1 corrigido), baseline de classe majoritária, métricas, tempo, memória e importância por permutação. Resultados em `resultados/manual/`.
+- `src/c318_common.py`: funções compartilhadas por todos os notebooks oficiais (leitura do CSV, filtros do T1, partição, asserções, métricas e medição de tempo/memória).
+- `data/HPLC_data.csv` e `data/splits/split_indices.csv`: CSV do Trabalho 1 e índices de treino/validação/teste usados por todos os sistemas.
+- `requirements-manual.txt`: versões exatas do pipeline manual.
 - `notebooks/testes_preliminares_colab.ipynb`: instalação, preparação e testes das duas ferramentas, com os ajustes de API usados no Colab.
 - `data/README.md`: origem e localização do CSV.
 - `resultados/testes_2026-11-12.md`: resultados relatados, falhas e limitações.
 - `requirements-autogluon.txt` e `requirements-tpot.txt`: versões das ferramentas testadas; não representam um congelamento completo do ambiente.
 
 ## Como executar
+
+### Pipeline manual (notebook oficial)
+
+```bash
+git clone <url-do-repositorio>
+pip install -r requirements-manual.txt
+jupyter lab   # abrir notebooks/01_pipeline_manual.ipynb > Restart Kernel and Run All
+```
+
+Com `RUN_LONG = False` (padrão), os resultados salvos em `resultados/manual/` são carregados; com `True`, refeitos. O teste reservado é consultado uma única vez e o resultado fica salvo.
+
+### Dados nos outros notebooks oficiais
+
+Todos os sistemas usam a mesma partição. Nos notebooks das ferramentas:
+
+```python
+import sys; sys.path.insert(0, "../src")
+from c318_common import *
+ROOT = find_repo_root()
+train_df, val_df, test_df = load_split(ROOT)   # confere os índices por asserção
+```
+
+### Testes preliminares (ficha de acompanhamento)
 
 1. Abra `notebooks/testes_preliminares_colab.ipynb` no Google Colab.
 2. Execute as células na ordem. A instalação pode exigir reiniciar a sessão antes dos imports.
