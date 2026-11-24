@@ -1,0 +1,213 @@
+"""Funções do experimento oficial de TPOT para o Trabalho 2.
+
+O módulo preserva o protocolo comum do projeto:
+
+* usa somente as linhas já filtradas e particionadas por ``c318_common``;
+* aplica apenas transformações determinísticas por registro antes do TPOT;
+* mantém imputação/codificação ajustável dentro das pipelines candidatas;
+* mede tempo de parede e pico de RSS, salva predições e registra a pipeline.
+
+TPOT 1.1.0 exige rótulos numéricos em algumas pipelines. A API codifica os
+rótulos internamente quando necessário; as funções de avaliação os devolvem
+ao espaço original de ``Diagnosis``.
+"""
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import StratifiedKFold
+
+from c318_common import (
+    CAT_COLS,
+    ID_COLS,
+    SEED,
+    TARGET,
+    add_age_years,
+    add_derived_features,
+    compute_metrics,
+    measure,
+)
+
+
+# Mesmas decisões de atributos da referência manual do Trabalho 1.
+DROP_FOR_TPOT = [*ID_COLS, "Age", "HbA0", "MCH", TARGET]
+TPOT_FEATURES = [
+    "Age_years", "HbA2", "HbF", "S-Window", "Unknown", "RBC", "HB",
+    "MCV", "MCHC", "RDWcv", *CAT_COLS,
+    "HbS_peak_presente", "HbD_peak_presente",
+]
+
+
+def prepare_tpot_input(part: pd.DataFrame, with_derived: bool = True):
+    """Retorna X e y para TPOT sem aprender parâmetros fora da ferramenta.
+
+    ``Age_years`` e os dois atributos de pico são calculados linha a linha,
+    como no Trabalho 1. Categorias ausentes viram a string fixa
+    ``Nao_informado`` e a idade ausente vira -1; ambas são regras por
+    registro, sem mediana, frequência ou estatística calculada no conjunto.
+    Isso deixa o TPOT responsável pela codificação e por quaisquer etapas
+    aprendidas de sua pipeline interna.
+    """
+    work = add_age_years(part)
+    if with_derived:
+        work = add_derived_features(work)
+
+    # Há ausências apenas em Age e nas colunas categóricas neste conjunto.
+    # Os sentinelas tornam a entrada válida sem estimar qualquer parâmetro.
+    work["Age_years"] = work["Age_years"].fillna(-1.0)
+    for col in CAT_COLS:
+        work[col] = work[col].astype("string").fillna("Nao_informado").astype(str)
+
+    drop = list(DROP_FOR_TPOT)
+    if not with_derived:
+        drop.extend(["HbS_peak_presente", "HbD_peak_presente"])
+    X = work.drop(columns=drop)
+    y = work[TARGET].copy()
+
+    expected = TPOT_FEATURES if with_derived else TPOT_FEATURES[:-2]
+    assert X.columns.tolist() == expected, X.columns.tolist()
+    assert len(X) == len(y)
+    assert not X.isna().any().any(), "Entrada TPOT não deve conter NaN"
+    assert y.nunique() == 8
+    return X, y
+
+
+def max_eval_minutes(budget_minutes: int) -> int:
+    """Limite por candidato, declarado antes das execuções.
+
+    Evita que uma pipeline individual ultrapasse muito o orçamento global,
+    comportamento observado no teste preliminar do TPOT no Colab.
+    """
+    return {5: 1, 30: 5, 60: 10}[int(budget_minutes)]
+
+
+def build_search_space(X: pd.DataFrame, y: pd.Series, seed: int):
+    """Cria encoder + espaço TPOT, todos ajustados dentro da CV interna.
+
+    ``preprocessing=True`` no TPOT 1.1.0 ajusta o pré-processamento em todo
+    o treino antes da CV interna. Para evitar essa forma de vazamento, o
+    encoder é a primeira etapa de cada pipeline candidata. Os valores já
+    chegam sem NaN por regras determinísticas de ``prepare_tpot_input``.
+    """
+    from tpot.config import get_search_space
+    from tpot.config.template_search_spaces import get_template_search_spaces
+    from tpot.search_spaces.pipelines import SequentialPipeline
+
+    params = {
+        "n_classes": int(y.nunique()),
+        "n_samples": len(X),
+        "n_features": X.shape[1],
+        "random_state": seed,
+        "n_jobs": 1,
+    }
+    encoder = get_search_space("ColumnOneHotEncoder", **params)
+    core = get_template_search_spaces(
+        "linear-light",
+        classification=True,
+        inner_predictors=False,
+        cross_val_predict_cv=0,
+        **params,
+    )
+    return SequentialPipeline([encoder, core])
+
+
+def build_tpot(X: pd.DataFrame, y: pd.Series, budget_minutes: int, seed: int,
+               checkpoint_dir: Path):
+    """Configuração oficial: somente treino, CV estratificada de 5 folds."""
+    from tpot import TPOTClassifier
+
+    checkpoint_dir.mkdir(parents=True, exist_ok=True)
+    cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=seed)
+    return TPOTClassifier(
+        search_space=build_search_space(X, y, seed),
+        scorers=["f1_macro"],
+        scorers_weights=[1],
+        cv=cv,
+        preprocessing=False,
+        validation_strategy="none",
+        max_time_mins=budget_minutes,
+        max_eval_time_mins=max_eval_minutes(budget_minutes),
+        n_jobs=1,
+        random_state=seed,
+        periodic_checkpoint_folder=str(checkpoint_dir),
+        verbose=2,
+    )
+
+
+def decode_labels(model, values) -> np.ndarray:
+    """Converte previsões internas 0..K-1 de volta para Diagnosis."""
+    pred = np.asarray(values)
+    encoder = getattr(model, "label_encoder_", None)
+    if encoder is not None:
+        try:
+            return encoder.inverse_transform(pred.astype(int))
+        except (TypeError, ValueError):
+            # Algumas versões devolvem diretamente os rótulos originais.
+            pass
+    return pred
+
+
+def class_labels(model, n_columns: int) -> np.ndarray:
+    """Rótulos das colunas de predict_proba no espaço original."""
+    encoder = getattr(model, "label_encoder_", None)
+    if encoder is not None:
+        labels = np.asarray(encoder.classes_)
+    else:
+        labels = np.asarray(getattr(model, "classes_", []))
+    if len(labels) != n_columns:
+        labels = np.arange(n_columns).astype(str)
+    return labels
+
+
+def fit_measure_predict(model, X_train, y_train, X_eval, y_eval, labels):
+    """Ajusta só em treino e avalia em conjunto externo, com métricas comuns."""
+    with measure() as fit_measure:
+        model.fit(X_train, y_train)
+    with measure() as predict_measure:
+        pred = decode_labels(model, model.predict(X_eval))
+
+    row = {
+        **compute_metrics(y_eval, pred, labels=labels),
+        "tempo_ajuste_s": fit_measure["wall_s"],
+        "tempo_inferencia_s": predict_measure["wall_s"],
+        "pico_memoria_mb": max(fit_measure["peak_mb"], predict_measure["peak_mb"]),
+    }
+
+    predictions = pd.DataFrame({"y_true": y_eval.to_numpy(), "y_pred": pred}, index=X_eval.index)
+    try:
+        proba = np.asarray(model.predict_proba(X_eval))
+        labels_proba = class_labels(model, proba.shape[1])
+        for i, label in enumerate(labels_proba):
+            predictions[f"proba_{label}"] = proba[:, i]
+    except Exception as exc:  # alguns pipelines TPOT não expõem probabilidades
+        row["aviso_probabilidades"] = f"{type(exc).__name__}: {exc}"
+    return row, predictions
+
+
+def pipeline_repr(model) -> str:
+    fitted = getattr(model, "fitted_pipeline_", None)
+    return repr(fitted)
+
+
+def write_json(path: Path, payload: dict):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
+
+
+def select_budget(validation_runs: pd.DataFrame) -> tuple[pd.DataFrame, int]:
+    """Seleciona o orçamento antes do teste: maior média de F1 macro; empate, menor budget."""
+    required = {"budget_min", "seed", "f1_macro"}
+    assert required <= set(validation_runs.columns), validation_runs.columns.tolist()
+    summary = (validation_runs.groupby("budget_min", as_index=False)
+               .agg(f1_macro_media=("f1_macro", "mean"),
+                    f1_macro_dp=("f1_macro", "std"),
+                    f1_weighted_media=("f1_weighted", "mean"),
+                    tempo_ajuste_s_medio=("tempo_ajuste_s", "mean"),
+                    pico_memoria_mb_max=("pico_memoria_mb", "max"),
+                    repeticoes=("seed", "nunique"))
+               .sort_values(["f1_macro_media", "budget_min"], ascending=[False, True]))
+    assert summary["repeticoes"].min() == 5, "Cada budget exige as cinco sementes declaradas"
+    return summary, int(summary.iloc[0]["budget_min"])

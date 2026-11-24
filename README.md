@@ -14,6 +14,8 @@ Os testes confirmaram instalação, importação e treinamento no CSV. **Ainda n
 
 - `notebooks/01_pipeline_manual.ipynb`: **protocolo oficial** — dados e filtros do Trabalho 1, partição 60/20/20 fixa, pipeline manual de referência (T1 corrigido), baseline de classe majoritária, métricas, tempo, memória e importância por permutação. Resultados em `resultados/manual/`.
 - `src/c318_common.py`: funções compartilhadas por todos os notebooks oficiais (leitura do CSV, filtros do T1, partição, asserções, métricas e medição de tempo/memória).
+- `notebooks/02_tpot_oficial.ipynb`: experimento oficial do **TPOT**. Executa a curva de budgets, seleciona o budget exclusivamente pela validação, realiza a ablação dos atributos derivados, calcula importância por permutação e reserva o teste para uma única consulta final.
+- `src/tpot_protocol.py`: prepara a entrada do TPOT e concentra a configuração, a busca e a auditoria da ferramenta.
 - `data/HPLC_data.csv` e `data/splits/split_indices.csv`: CSV do Trabalho 1 e índices de treino/validação/teste usados por todos os sistemas.
 - `requirements-manual.txt`: versões exatas do pipeline manual.
 - `notebooks/testes_preliminares_colab.ipynb`: instalação, preparação e testes das duas ferramentas, com os ajustes de API usados no Colab.
@@ -43,6 +45,16 @@ from c318_common import *
 ROOT = find_repo_root()
 train_df, val_df, test_df = load_split(ROOT)   # confere os índices por asserção
 ```
+
+### TPOT (notebook oficial)
+
+1. No Google Colab, clone ou envie o repositório e execute `pip install -r requirements-tpot.txt`.
+2. Abra `notebooks/02_tpot_oficial.ipynb` a partir da raiz do repositório. A primeira execução deve manter todas as chaves `RUN_*` como `False`: ela apenas confere ambiente, CSV, filtros, partição e asserções.
+3. Para as 15 execuções da curva, altere somente `RUN_VALIDATION = True`. O notebook ajusta cada busca exclusivamente no treino e mede a validação externa para os budgets de 5, 30 e 60 minutos e sementes 42, 101, 223, 347 e 409.
+4. Após a escolha gravada em `resultados/tpot/budget_selecionado.json`, execute separadamente `RUN_DERIVED_ABLATION = True` e `RUN_IMPORTANCE = True`.
+5. Somente quando toda a seleção estiver congelada, altere `RUN_FINAL_TEST = True`. A célula impede nova consulta se `resultados/tpot/metricas_teste.csv` já existir.
+
+O TPOT recebe apenas transformações determinísticas por registro antes da busca. A codificação categórica é a primeira etapa das pipelines candidatas, dentro da validação cruzada interna; assim, não há ajuste de codificador usando todo o treino antes dos folds internos. Consulte `src/tpot_protocol.py` antes de mudar a configuração.
 
 ### Testes preliminares (ficha de acompanhamento)
 

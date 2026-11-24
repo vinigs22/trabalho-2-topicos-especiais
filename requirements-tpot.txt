@@ -1,3 +1,4 @@
-# Ferramenta instalada no Colab no teste preliminar.
-# Demais dependências ainda não foram congeladas.
+# TPOT oficial no Google Colab. As versões do ambiente devem ser
+# registradas nos metadados gerados pelo notebook após cada execução.
 tpot==1.1.0
+psutil
