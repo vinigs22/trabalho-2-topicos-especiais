@@ -1,0 +1,23 @@
+{
+  "run_id": "budget_05m_seed_347",
+  "budget_min": 5,
+  "seed": 347,
+  "subset_fit": "train",
+  "subset_eval": "val",
+  "target": "Diagnosis",
+  "tpot_version": "1.1.0",
+  "started_at_utc": "2026-11-24T15:25:14.143967+00:00",
+  "status": "ok",
+  "metrics": {
+    "f1_macro": 0.8671716553588078,
+    "f1_weighted": 0.9972545528074991,
+    "accuracy": 0.9973097617217525,
+    "balanced_accuracy": 0.8726310275262735,
+    "precision_macro": 0.8674907810928596,
+    "recall_macro": 0.8726310275262735,
+    "tempo_ajuste_s": 404.14984933999995,
+    "tempo_inferencia_s": 0.02731931900007112,
+    "pico_memoria_mb": 981.7265625
+  },
+  "pipeline_file": "pipelines/budget_05m_seed_347.txt"
+}

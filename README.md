@@ -74,6 +74,18 @@ Os testes usam CPU. No ambiente relatado, havia Python 3.13.18, duas CPUs e apro
 
 No AutoGluon, o ensemble apresentou `score_val=0,998868` e `score_test=0,887394` ao chamar `leaderboard(valid_df)`. Nesse comando, `score_test` refere-se à validação preliminar fornecida, e não ao teste reservado do Trabalho 1. Os valores não devem ser comparados diretamente com os do TPOT: houve diferença no tratamento das classes. Veja o registro em `resultados/`.
 
+## Resultado oficial do TPOT
+
+O protocolo oficial foi executado com TPOT 1.1.0, F1-macro como objetivo, validação cruzada estratificada de cinco folds no treino e avaliação externa na validação. O budget de 5 minutos foi repetido nas cinco sementes; os budgets de 30 minutos e 60 minutos foram executados com a seed 42. O melhor budget na validação foi o de 60 minutos.
+
+| Budget | Repetições | F1-macro na validação |
+|---|---:|---:|
+| 5 min | 5 | 0,5956 (média; DP 0,3324) |
+| 30 min | 1 | 0,8672 |
+| 60 min | 1 | 0,8892 |
+
+No teste reservado, consultado uma única vez após a seleção, o TPOT alcançou F1-macro `0,9683`, F1-weighted `0,9996` e acurácia `0,9996`. Na ablação de 30 minutos, o F1-macro foi `0,8892` tanto com quanto sem os atributos derivados. Os artefatos estão em `resultados/tpot/`.
+
 ## Ajustes necessários antes do experimento oficial
 
 - Recuperar os mesmos índices de treino/validação/teste 60/20/20 do Trabalho 1, suas oito classes e colunas descartadas; conferir por asserções. O teste preliminar usou nove classes e divisão 80/20.

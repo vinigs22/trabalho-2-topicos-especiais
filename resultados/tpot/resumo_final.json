@@ -1,0 +1,13 @@
+{
+  "sistema": "TPOT",
+  "versao": "1.1.0",
+  "budget_min": 60,
+  "seed": 42,
+  "subconjunto": "test",
+  "f1_macro": 0.9682539682539683,
+  "f1_weighted": 0.9996097299209092,
+  "accuracy": 0.9996158278908951,
+  "balanced_accuracy": 0.96875,
+  "precision_macro": 0.975,
+  "recall_macro": 0.96875
+}

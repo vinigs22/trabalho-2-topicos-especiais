@@ -1,0 +1,2 @@
+sistema,versao,budget_min,seed,subconjunto,f1_macro,f1_weighted,accuracy,balanced_accuracy,precision_macro,recall_macro
+TPOT,1.1.0,60,42,test,0.9682539682539683,0.9996097299209092,0.9996158278908951,0.96875,0.975,0.96875

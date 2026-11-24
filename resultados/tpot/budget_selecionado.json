@@ -1,0 +1,36 @@
+{
+  "criterio": "maior média de F1 macro na validação; empate pelo menor budget",
+  "budget_selecionado_min": 60,
+  "seeds": [
+    42
+  ],
+  "resumo": [
+    {
+      "budget_min": 60,
+      "f1_macro_media": 0.8891532931791846,
+      "f1_macro_dp": NaN,
+      "f1_weighted_media": 0.9979559069336164,
+      "tempo_ajuste_s_medio": 3735.663720211,
+      "pico_memoria_mb_max": 1428.8125,
+      "repeticoes": 1
+    },
+    {
+      "budget_min": 30,
+      "f1_macro_media": 0.8671716553588078,
+      "f1_macro_dp": NaN,
+      "f1_weighted_media": 0.9972545528074992,
+      "tempo_ajuste_s_medio": 1949.369286815,
+      "pico_memoria_mb_max": 1376.6640625,
+      "repeticoes": 1
+    },
+    {
+      "budget_min": 5,
+      "f1_macro_media": 0.595631325053734,
+      "f1_macro_dp": 0.3324138114887388,
+      "f1_weighted_media": 0.7919368235395616,
+      "tempo_ajuste_s_medio": 353.43941061800007,
+      "pico_memoria_mb_max": 1517.78125,
+      "repeticoes": 5
+    }
+  ]
+}
