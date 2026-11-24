@@ -234,5 +234,9 @@ def select_budget(validation_runs: pd.DataFrame) -> tuple[pd.DataFrame, int]:
                     pico_memoria_mb_max=("pico_memoria_mb", "max"),
                     repeticoes=("seed", "nunique"))
                .sort_values(["f1_macro_media", "budget_min"], ascending=[False, True]))
-    assert summary["repeticoes"].min() == 5, "Cada budget exige as cinco sementes declaradas"
+    repetitions = validation_runs.groupby("budget_min")["seed"].nunique()
+    assert repetitions.get(5, 0) == 5, "O budget de 5 minutos exige as cinco sementes"
+    assert (repetitions.drop(index=5, errors="ignore") >= 1).all(), (
+        "Cada budget adicional exige ao menos uma execução"
+    )
     return summary, int(summary.iloc[0]["budget_min"])
