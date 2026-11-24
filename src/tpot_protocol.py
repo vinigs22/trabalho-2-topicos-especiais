@@ -14,6 +14,8 @@ ao espaço original de ``Diagnosis``.
 from __future__ import annotations
 
 import json
+import signal
+from contextlib import contextmanager
 from pathlib import Path
 
 import numpy as np
@@ -30,6 +32,25 @@ from c318_common import (
     compute_metrics,
     measure,
 )
+
+
+@contextmanager
+def fit_timeout(seconds: int):
+    """Impõe limite externo no Colab para evitar ajuste preso no encerramento."""
+    if not hasattr(signal, "SIGALRM"):
+        yield
+        return
+
+    def handler(_signum, _frame):
+        raise TimeoutError(f"Ajuste TPOT excedeu o limite externo de {seconds}s")
+
+    previous = signal.signal(signal.SIGALRM, handler)
+    signal.alarm(int(seconds))
+    try:
+        yield
+    finally:
+        signal.alarm(0)
+        signal.signal(signal.SIGALRM, previous)
 
 
 # Mesmas decisões de atributos da referência manual do Trabalho 1.
@@ -117,7 +138,7 @@ def build_tpot(X: pd.DataFrame, y: pd.Series, budget_minutes: int, seed: int,
 
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
     cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=seed)
-    return TPOTClassifier(
+    model = TPOTClassifier(
         search_space=build_search_space(X, y, seed),
         scorers=["f1_macro"],
         scorers_weights=[1],
@@ -131,6 +152,8 @@ def build_tpot(X: pd.DataFrame, y: pd.Series, budget_minutes: int, seed: int,
         periodic_checkpoint_folder=str(checkpoint_dir),
         verbose=2,
     )
+    model._c318_timeout_s = int(budget_minutes * 60 + 60)
+    return model
 
 
 def decode_labels(model, values) -> np.ndarray:
@@ -161,7 +184,8 @@ def class_labels(model, n_columns: int) -> np.ndarray:
 def fit_measure_predict(model, X_train, y_train, X_eval, y_eval, labels):
     """Ajusta só em treino e avalia em conjunto externo, com métricas comuns."""
     with measure() as fit_measure:
-        model.fit(X_train, y_train)
+        with fit_timeout(getattr(model, "_c318_timeout_s", 3600)):
+            model.fit(X_train, y_train)
     with measure() as predict_measure:
         pred = decode_labels(model, model.predict(X_eval))
 
