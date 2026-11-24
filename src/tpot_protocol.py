@@ -87,6 +87,18 @@ def max_eval_minutes(budget_minutes: int) -> int:
     return {5: 1, 30: 5, 60: 10}[int(budget_minutes)]
 
 
+def align_numeric_inputs(*frames: pd.DataFrame) -> tuple[pd.DataFrame, ...]:
+    """Codifica categorias e alinha as colunas sem usar o alvo.
+
+    O TPOT 1.1.0 apresentou falha interna ao receber categorias textuais.
+    A expansão indicadora é determinística; o vocabulário é alinhado entre
+    as partições e não usa qualquer estatística da variável-alvo.
+    """
+    encoded = [pd.get_dummies(frame, dtype=float) for frame in frames]
+    columns = sorted(set().union(*(frame.columns for frame in encoded)))
+    return tuple(frame.reindex(columns=columns, fill_value=0.0) for frame in encoded)
+
+
 def build_search_space(X: pd.DataFrame, y: pd.Series, seed: int):
     """Retorna o espaço oficial estável do TPOT 1.1.0.
 
