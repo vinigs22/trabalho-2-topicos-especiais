@@ -86,7 +86,7 @@ def prepare_tpot_input(part: pd.DataFrame, with_derived: bool = True):
     if not with_derived:
         drop.extend(["HbS_peak_presente", "HbD_peak_presente"])
     expected = TPOT_FEATURES if with_derived else TPOT_FEATURES[:-2]
-    X = work.drop(columns=drop)
+    X = work.drop(columns=drop, errors="ignore")
     # O CSV mantém a ordem original das colunas; o protocolo usa uma ordem
     # explícita para que treino, validação e teste tenham a mesma entrada.
     X = X[expected]
