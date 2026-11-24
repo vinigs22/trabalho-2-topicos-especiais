@@ -54,7 +54,7 @@ train_df, val_df, test_df = load_split(ROOT)   # confere os índices por asserç
 4. Após a escolha gravada em `resultados/tpot/budget_selecionado.json`, execute separadamente `RUN_DERIVED_ABLATION = True` e `RUN_IMPORTANCE = True`.
 5. Somente quando toda a seleção estiver congelada, altere `RUN_FINAL_TEST = True`. A célula impede nova consulta se `resultados/tpot/metricas_teste.csv` já existir.
 
-O TPOT recebe apenas transformações determinísticas por registro antes da busca. A codificação categórica é a primeira etapa das pipelines candidatas, dentro da validação cruzada interna; assim, não há ajuste de codificador usando todo o treino antes dos folds internos. Consulte `src/tpot_protocol.py` antes de mudar a configuração.
+O TPOT recebe apenas transformações determinísticas por registro antes da busca. O notebook usa o espaço oficial `linear-light` do TPOT 1.1.0, pois o espaço personalizado com `ColumnOneHotEncoder` apresentou erro interno na seleção da população nessa versão. Essa escolha fica registrada para auditoria; a configuração efetiva deve ser conferida na saída da pipeline e no relatório.
 
 ### Testes preliminares (ficha de acompanhamento)
 

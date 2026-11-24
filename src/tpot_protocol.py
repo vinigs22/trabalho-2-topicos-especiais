@@ -88,33 +88,14 @@ def max_eval_minutes(budget_minutes: int) -> int:
 
 
 def build_search_space(X: pd.DataFrame, y: pd.Series, seed: int):
-    """Cria encoder + espaço TPOT, todos ajustados dentro da CV interna.
+    """Retorna o espaço oficial estável do TPOT 1.1.0.
 
-    ``preprocessing=True`` no TPOT 1.1.0 ajusta o pré-processamento em todo
-    o treino antes da CV interna. Para evitar essa forma de vazamento, o
-    encoder é a primeira etapa de cada pipeline candidata. Os valores já
-    chegam sem NaN por regras determinísticas de ``prepare_tpot_input``.
+    O espaço personalizado com ``ColumnOneHotEncoder`` foi testado, mas a
+    versão 1.1.0 apresentou erro interno na seleção da população antes de
+    avaliar a primeira geração. Mantemos o espaço oficial ``linear-light``
+    para que o experimento seja executável e auditável no ambiente do curso.
     """
-    from tpot.config import get_search_space
-    from tpot.config.template_search_spaces import get_template_search_spaces
-    from tpot.search_spaces.pipelines import SequentialPipeline
-
-    params = {
-        "n_classes": int(y.nunique()),
-        "n_samples": len(X),
-        "n_features": X.shape[1],
-        "random_state": seed,
-        "n_jobs": 1,
-    }
-    encoder = get_search_space("ColumnOneHotEncoder", **params)
-    core = get_template_search_spaces(
-        "linear-light",
-        classification=True,
-        inner_predictors=False,
-        cross_val_predict_cv=0,
-        **params,
-    )
-    return SequentialPipeline([encoder, core])
+    return "linear-light"
 
 
 def build_tpot(X: pd.DataFrame, y: pd.Series, budget_minutes: int, seed: int,
@@ -129,7 +110,7 @@ def build_tpot(X: pd.DataFrame, y: pd.Series, budget_minutes: int, seed: int,
         scorers=["f1_macro"],
         scorers_weights=[1],
         cv=cv,
-        preprocessing=False,
+        preprocessing=True,
         validation_strategy="none",
         max_time_mins=budget_minutes,
         max_eval_time_mins=max_eval_minutes(budget_minutes),
