@@ -1,3 +1,6 @@
-# Ferramenta instalada no Colab no teste preliminar.
-# Demais dependências ainda não foram congeladas.
-autogluon.tabular==1.6.3
+# AutoGluon oficial no Google Colab (CPU). Os extras evitam que famílias do
+# preset medium_quality sejam silenciosamente ignoradas por dependência ausente.
+autogluon.tabular[lightgbm,catboost,xgboost,fastai]==1.6.3
+psutil
+pytest
+tabulate

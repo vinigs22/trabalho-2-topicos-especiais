@@ -3,4 +3,5 @@ __pycache__/
 .venv/
 resultados_autogluon/
 AutogluonModels/
+resultados/autogluon/modelos/
 *.log
