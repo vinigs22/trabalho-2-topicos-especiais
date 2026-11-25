@@ -6,9 +6,9 @@ Integrantes: Gabriel Lopes Silva, Lucas Caetano Reis, Pedro Tiso Vinhas Mesquita
 
 ## Etapa atual
 
-Este repositório registra os testes preliminares realizados no Google Colab em 12/11/2026 para a ficha de acompanhamento. As ferramentas escolhidas são **TPOT 1.1.0** (busca sobre pipelines scikit-learn) e **AutoGluon Tabular 1.6.3** (família de gradient boosting automatizado na tabela do enunciado).
+O pipeline manual e o TPOT oficial já possuem resultados versionados. O protocolo oficial do **AutoGluon Tabular 1.6.3** está implementado e pronto para as execuções longas no Google Colab; seus resultados oficiais só existirão depois que o notebook 03 for executado com as chaves correspondentes.
 
-Os testes confirmaram instalação, importação e treinamento no CSV. **Ainda não constituem a comparação oficial com o Trabalho 1.** O notebook foi reconstruído a partir das células e saídas compartilhadas pela equipe; não é uma exportação do caderno original e não contém saídas de execução fabricadas.
+O notebook preliminar de 12/11/2026 continua no repositório apenas como registro da ficha de acompanhamento. Seus números usam outro split e não constituem a comparação oficial com o Trabalho 1.
 
 ## Arquivos
 
@@ -16,12 +16,15 @@ Os testes confirmaram instalação, importação e treinamento no CSV. **Ainda n
 - `src/c318_common.py`: funções compartilhadas por todos os notebooks oficiais (leitura do CSV, filtros do T1, partição, asserções, métricas e medição de tempo/memória).
 - `notebooks/02_tpot_oficial.ipynb`: experimento oficial do **TPOT**. Executa a curva de budgets, seleciona o budget exclusivamente pela validação, realiza a ablação dos atributos derivados, calcula importância por permutação e reserva o teste para uma única consulta final.
 - `src/tpot_protocol.py`: prepara a entrada do TPOT e concentra a configuração, a busca e a auditoria da ferramenta.
+- `notebooks/03_autogluon_oficial.ipynb`: protocolo oficial do **AutoGluon** — sete runs, ablação pareada, auditoria do ensemble/modelo vencedor e bloqueio da segunda consulta ao teste.
+- `src/autogluon_protocol.py`: preparação dos 17/15 atributos, holdout interno por seed, treino, medição, avaliação, persistência e seleção do budget do AutoGluon.
+- `tests/test_autogluon_protocol.py`: testes do preparo, splits internos e regra de seleção, sem iniciar buscas AutoML.
 - `data/HPLC_data.csv` e `data/splits/split_indices.csv`: CSV do Trabalho 1 e índices de treino/validação/teste usados por todos os sistemas.
 - `requirements-manual.txt`: versões exatas do pipeline manual.
 - `notebooks/testes_preliminares_colab.ipynb`: instalação, preparação e testes das duas ferramentas, com os ajustes de API usados no Colab.
 - `data/README.md`: origem e localização do CSV.
 - `resultados/testes_2026-11-12.md`: resultados relatados, falhas e limitações.
-- `requirements-autogluon.txt` e `requirements-tpot.txt`: versões das ferramentas testadas; não representam um congelamento completo do ambiente.
+- `requirements-autogluon.txt` e `requirements-tpot.txt`: ferramentas e dependências diretas dos notebooks; cada execução oficial também salva o `pip freeze` completo em seus resultados.
 
 ## Como executar
 
@@ -50,11 +53,28 @@ train_df, val_df, test_df = load_split(ROOT)   # confere os índices por asserç
 
 1. No Google Colab, clone ou envie o repositório e execute `pip install -r requirements-tpot.txt`.
 2. Abra `notebooks/02_tpot_oficial.ipynb` a partir da raiz do repositório. A primeira execução deve manter todas as chaves `RUN_*` como `False`: ela apenas confere ambiente, CSV, filtros, partição e asserções.
-3. Para as 15 execuções da curva, altere somente `RUN_VALIDATION = True`. O notebook ajusta cada busca exclusivamente no treino e mede a validação externa para os budgets de 5, 30 e 60 minutos e sementes 42, 101, 223, 347 e 409.
+3. Para as sete execuções da curva, altere somente `RUN_VALIDATION = True`. O notebook usa as cinco sementes no budget de 5 minutos e somente a seed 42 nos budgets de 30 e 60 minutos.
 4. Após a escolha gravada em `resultados/tpot/budget_selecionado.json`, execute separadamente `RUN_DERIVED_ABLATION = True` e `RUN_IMPORTANCE = True`.
 5. Somente quando toda a seleção estiver congelada, altere `RUN_FINAL_TEST = True`. A célula impede nova consulta se `resultados/tpot/metricas_teste.csv` já existir.
 
 O TPOT recebe apenas transformações determinísticas por registro antes da busca. O notebook usa o espaço oficial `linear-light` do TPOT 1.1.0, pois o espaço personalizado com `ColumnOneHotEncoder` apresentou erro interno na seleção da população nessa versão. Essa escolha fica registrada para auditoria; a configuração efetiva deve ser conferida na saída da pipeline e no relatório.
+
+### AutoGluon (notebook oficial)
+
+1. No Google Colab em CPU, clone ou envie o repositório e execute `pip install -r requirements-autogluon.txt`. Reinicie o runtime depois da instalação.
+2. Abra `notebooks/03_autogluon_oficial.ipynb` a partir da raiz. Execute primeiro com todas as chaves `RUN_* = False` para conferir ambiente, dados, split e as oito classes.
+3. Execute `RUN_SMOKE = True` isoladamente. O smoke usa somente parcelas do treino oficial e não produz resultado comparável.
+4. Execute `RUN_VALIDATION = True`. São sete runs com atributos derivados: cinco seeds em 5 minutos e a seed 42 em 30 e 60 minutos. Runs concluídos são preservados e ignorados em retomadas.
+5. Depois que `budget_selecionado.json` for criado, execute separadamente `RUN_DERIVED_ABLATION = True` e `RUN_AUDIT = True`. A ablação reaproveita o run de 30 minutos com atributos e treina apenas o par sem atributos.
+6. Revise a auditoria e só então execute `RUN_FINAL_TEST = True` uma vez. O notebook recusa uma segunda consulta ao teste.
+
+O holdout entregue como `tuning_data` é criado exclusivamente dentro das 7.806 linhas do treino oficial. A validação de 2.602 linhas nunca entra no `fit`; ela compara os runs e congela o budget. O limiar de classes do AutoGluon é reduzido para 1 porque a menor classe possui oito exemplos no treino. Os predictors, potencialmente grandes, ficam em `resultados/autogluon/modelos/` e são ignorados pelo Git; CSVs, JSONs, logs exportados e a análise permanecem versionáveis.
+
+Para conferir a lógica sem instalar ou treinar o AutoGluon, desde que as dependências tabulares estejam disponíveis:
+
+```bash
+pytest -q tests/test_autogluon_protocol.py
+```
 
 ### Testes preliminares (ficha de acompanhamento)
 
@@ -86,13 +106,8 @@ O protocolo oficial foi executado com TPOT 1.1.0, F1-macro como objetivo, valida
 
 No teste reservado, consultado uma única vez após a seleção, o TPOT alcançou F1-macro `0,9683`, F1-weighted `0,9996` e acurácia `0,9996`. Na ablação de 30 minutos, o F1-macro foi `0,8892` tanto com quanto sem os atributos derivados. Os artefatos estão em `resultados/tpot/`.
 
-## Ajustes necessários antes do experimento oficial
+## AutoGluon oficial: trabalho ainda pendente
 
-- Recuperar os mesmos índices de treino/validação/teste 60/20/20 do Trabalho 1, suas oito classes e colunas descartadas; conferir por asserções. O teste preliminar usou nove classes e divisão 80/20.
-- Fornecer somente treino às ferramentas. No teste preliminar, a validação foi entregue ao AutoGluon como `tuning_data`, o que não atende ao protocolo oficial.
-- Ajustar imputação e codificação dentro dos folds internos. A preparação preliminar do TPOT usou a base inteira antes da divisão e não é adequada para estimar desempenho sem vazamento.
-- Auditar classes raras, seleção de modelos, pré-processamento e ensembles. O CatBoost foi ignorado por dependência ausente na execução relatada.
-- Executar os budgets de 5 min, 30 min e 1 h, sementes e medições exigidos no enunciado; reservar teste para uma avaliação por sistema.
-- Acrescentar os notebooks oficiais, arquivos de ambiente completos, logs, predições e auditorias. O repositório deve permitir reprodução no Colab e localmente.
-
-O código nesta etapa documenta a exploração inicial; seus resultados não estabelecem superioridade entre ferramentas.
+- Executar no Colab o smoke, os sete runs oficiais e o run adicional da ablação sem atributos derivados.
+- Revisar a seleção congelada e a auditoria gerada antes de liberar a consulta única ao teste.
+- Versionar `resultados/autogluon/`, exceto o diretório pesado `modelos/`, e preencher esta seção com os resultados reais. Não devem ser inferidas métricas a partir do teste preliminar.
