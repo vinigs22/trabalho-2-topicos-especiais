@@ -61,8 +61,8 @@ O TPOT recebe apenas transformações determinísticas por registro antes da bus
 
 ### AutoGluon (notebook oficial)
 
-1. No Google Colab em CPU, clone ou envie o repositório e execute `pip install -r requirements-autogluon.txt`. Reinicie o runtime depois da instalação.
-2. Abra `notebooks/03_autogluon_oficial.ipynb` a partir da raiz. Execute primeiro com todas as chaves `RUN_* = False` para conferir ambiente, dados, split e as oito classes.
+1. No Google Colab em CPU, envie somente `notebooks/03_autogluon_oficial.ipynb`. A célula de bootstrap clona automaticamente a branch oficial rasa em `/content`, obtém os dados e módulos auxiliares e instala o AutoGluon 1.6.3 antes dos imports científicos.
+2. Execute primeiro com todas as chaves `RUN_* = False` para conferir ambiente, dados, split e as oito classes. Não é necessário clonar o repositório, mudar o diretório de trabalho ou executar `pip install` manualmente.
 3. Execute `RUN_SMOKE = True` isoladamente. O smoke usa somente parcelas do treino oficial e não produz resultado comparável.
 4. Execute `RUN_VALIDATION = True`. São sete runs com atributos derivados: cinco seeds em 5 minutos e a seed 42 em 30 e 60 minutos. Runs concluídos são preservados e ignorados em retomadas.
 5. Depois que `budget_selecionado.json` for criado, execute separadamente `RUN_DERIVED_ABLATION = True` e `RUN_AUDIT = True`. A ablação reaproveita o run de 30 minutos com atributos e treina apenas o par sem atributos.
