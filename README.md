@@ -68,6 +68,8 @@ O TPOT recebe apenas transformações determinísticas por registro antes da bus
 5. Depois que `budget_selecionado.json` for criado, execute separadamente `RUN_DERIVED_ABLATION = True` e `RUN_AUDIT = True`. A ablação reaproveita o run de 30 minutos com atributos e treina apenas o par sem atributos.
 6. Revise a auditoria e só então execute `RUN_FINAL_TEST = True` uma vez. O notebook recusa uma segunda consulta ao teste.
 
+Para execução sem supervisão, deixe as cinco flags de etapa como `False`, defina somente `RUN_COMPLETE_PIPELINE = True` e use **Executar tudo**. O notebook respeita a mesma ordem segura, não repete smoke, runs, auditoria ou teste já concluídos e continua a matriz após uma falha isolada. Em uma nova execução, predictors parciais são movidos para `resultados/autogluon/modelos_parciais_preservados/`, sem apagar evidências, e apenas o run ausente é treinado novamente.
+
 O holdout entregue como `tuning_data` é criado exclusivamente dentro das 7.806 linhas do treino oficial. A validação de 2.602 linhas nunca entra no `fit`; ela compara os runs e congela o budget. O limiar de classes do AutoGluon é reduzido para 1 porque a menor classe possui oito exemplos no treino. Os predictors, potencialmente grandes, ficam em `resultados/autogluon/modelos/` e são ignorados pelo Git; CSVs, JSONs, logs exportados e a análise permanecem versionáveis.
 
 Para conferir a lógica sem instalar ou treinar o AutoGluon, desde que as dependências tabulares estejam disponíveis:
